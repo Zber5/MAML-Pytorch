@@ -56,7 +56,7 @@ class MnistNShot:
 
         # [1623, 20, 84, 84, 1]
         # TODO: can not shuffle here, we must keep training and test set distinct!
-        self.x_train, self.x_test = self.x[:10], self.x[10:]
+        self.x_train, self.x_test = self.x[:10], self.x[0:]
 
         # self.normalization()
 

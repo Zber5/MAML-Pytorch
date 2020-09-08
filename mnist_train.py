@@ -73,7 +73,7 @@ def main(args):
             accs = []
             for _ in range(1000 // args.task_num):
                 # test
-                x_spt, y_spt, x_qry, y_qry = db_mnist.next('train')
+                x_spt, y_spt, x_qry, y_qry = db_train.next('train')
                 x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
                                              torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
 
@@ -91,7 +91,7 @@ def main(args):
             accs = []
             for _ in range(1000 // args.task_num):
                 # test
-                x_spt, y_spt, x_qry, y_qry = db_train.next('test')
+                x_spt, y_spt, x_qry, y_qry = db_mnist.next('test')
                 x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
                                              torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
 
@@ -107,7 +107,7 @@ def main(args):
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=40000)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=2001)
     argparser.add_argument('--n_way', type=int, help='n way', default=5)
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1)
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=15)
