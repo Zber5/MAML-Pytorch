@@ -5,7 +5,7 @@ import os.path
 import numpy as np
 
 
-class OmniglotNShot:
+class MnistNShot:
 
     def __init__(self, root, batchsz, n_way, k_shot, k_query, imgsz):
         """
@@ -19,52 +19,57 @@ class OmniglotNShot:
         """
 
         self.resize = imgsz
-        if not os.path.isfile(os.path.join(root, 'omniglot.npy')):
-            # if root/data.npy does not exist, just download it
-            self.x = Omniglot(root, download=True,
-                              transform=transforms.Compose([lambda x: Image.open(x).convert('L'),
-                                                            lambda x: x.resize((imgsz, imgsz)),
-                                                            lambda x: np.reshape(x, (imgsz, imgsz, 1)),
-                                                            lambda x: np.transpose(x, [2, 0, 1]),
-                                                            lambda x: x / 255.])
-                              )
-
-            temp = dict()  # {label:img1, img2..., 20 imgs, label2: img1, img2,... in total, 1623 label}
-            for (img, label) in self.x:
-                if label in temp.keys():
-                    temp[label].append(img)
-                else:
-                    temp[label] = [img]
-
-            self.x = []
-            for label, imgs in temp.items():  # labels info deserted , each label contains 20imgs
-                self.x.append(np.array(imgs))
-
-            # as different class may have different number of imgs
-            self.x = np.array(self.x).astype(np.float)  # [[20 imgs],..., 1623 classes in total]
-            # each character contains 20 imgs
-            print('data shape:', self.x.shape)  # [1623, 20, 84, 84, 1]
-            temp = []  # Free memory
-            # save all dataset into npy file.
-            np.save(os.path.join(root, 'omniglot.npy'), self.x)
-            print('write into omniglot.npy.')
+        if not os.path.isfile(os.path.join(root, 'mnist.npy')):
+            # # if root/data.npy does not exist, just download it
+            # self.x = Omniglot(root, download=True,
+            #                   transform=transforms.Compose([lambda x: Image.open(x).convert('L'),
+            #                                                 lambda x: x.resize((imgsz, imgsz)),
+            #                                                 lambda x: np.reshape(x, (imgsz, imgsz, 1)),
+            #                                                 lambda x: np.transpose(x, [2, 0, 1]),
+            #                                                 lambda x: x / 255.])
+            #                   )
+            #
+            # temp = dict()  # {label:img1, img2..., 20 imgs, label2: img1, img2,... in total, 1623 label}
+            # for (img, label) in self.x:
+            #     if label in temp.keys():
+            #         temp[label].append(img)
+            #     else:
+            #         temp[label] = [img]
+            #
+            # self.x = []
+            # for label, imgs in temp.items():  # labels info deserted , each label contains 20imgs
+            #     self.x.append(np.array(imgs))
+            #
+            # # as different class may have different number of imgs
+            # self.x = np.array(self.x).astype(np.float)  # [[20 imgs],..., 1623 classes in total]
+            # # each character contains 20 imgs
+            # print('data shape:', self.x.shape)  # [1623, 20, 84, 84, 1]
+            # temp = []  # Free memory
+            # # save all dataset into npy file.
+            # np.save(os.path.join(root, 'omniglot.npy'), self.x)
+            # print('write into omniglot.npy.')
+            pass
         else:
             # if data.npy exists, just load it.
-            self.x = np.load(os.path.join(root, 'omniglot.npy'))
-            print('load from omniglot.npy.')
+            self.x = np.load(os.path.join(root, 'mnist.npy'))
+            print('load from mnist.npy.')
 
         # [1623, 20, 84, 84, 1]
         # TODO: can not shuffle here, we must keep training and test set distinct!
-        self.x_train, self.x_test = self.x[:1200], self.x[1200:]
+        self.x_train, self.x_test = self.x[:10], self.x[10:]
 
         # self.normalization()
+
+        # normalization manually
+        self.x_train /= 255.
+        self.x_test /= 255.
 
         self.batchsz = batchsz
         self.n_cls = self.x.shape[0]  # 1623
         self.n_way = n_way  # n way
         self.k_shot = k_shot  # k shot
         self.k_query = k_query  # k query
-        assert (k_shot + k_query) <= 20
+        # assert (k_shot + k_query) <= 20
 
         # save pointer of current read batch in total cache
         self.indexes = {"train": 0, "test": 0}
@@ -114,7 +119,8 @@ class OmniglotNShot:
                 selected_cls = np.random.choice(data_pack.shape[0], self.n_way, False)
 
                 for j, cur_class in enumerate(selected_cls):
-                    selected_img = np.random.choice(20, self.k_shot + self.k_query, False)
+                    # 5000 is the number of images in each class
+                    selected_img = np.random.choice(5000, self.k_shot + self.k_query, False)
 
                     # meta-training and meta-test
                     x_spt.append(data_pack[cur_class][selected_img[:self.k_shot]])
@@ -173,7 +179,7 @@ if __name__ == '__main__':
     # plt.ion()
     viz = visdom.Visdom(env='omniglot_view')
 
-    db = OmniglotNShot('db/omniglot', batchsz=20, n_way=5, k_shot=5, k_query=15, imgsz=64)
+    db = MnistNShot('db/omniglot', batchsz=20, n_way=5, k_shot=5, k_query=15, imgsz=64)
 
     for i in range(1000):
         x_spt, y_spt, x_qry, y_qry = db.next('train')

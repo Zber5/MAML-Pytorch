@@ -1,5 +1,6 @@
 import torch, os
 import numpy as np
+from mnistNShot import MnistNShot
 from omniglotNShot import OmniglotNShot
 import argparse
 
@@ -30,9 +31,9 @@ def main(args):
         ('linear', [args.n_way, 64])
     ]
 
-    # device = torch.device('cuda')
+    device = torch.device('cuda')
 
-    device = torch.device('cpu')
+    # device = torch.device('cpu')
 
     maml = Meta(args, config).to(device)
 
@@ -48,6 +49,13 @@ def main(args):
                              k_query=args.k_qry,
                              imgsz=args.imgsz)
 
+    db_mnist = MnistNShot('MNIST',
+                          batchsz=args.task_num,
+                          n_way=args.n_way,
+                          k_shot=args.k_spt,
+                          k_query=args.k_qry,
+                          imgsz=args.imgsz)
+
     for step in range(args.epoch):
 
         x_spt, y_spt, x_qry, y_qry = db_train.next()
@@ -60,7 +68,26 @@ def main(args):
         if step % 50 == 0:
             print('step:', step, '\ttraining acc:', accs)
 
-        if step % 500 == 0:
+        # test omniglot
+        if step % 100 == 0:
+            accs = []
+            for _ in range(1000 // args.task_num):
+                # test
+                x_spt, y_spt, x_qry, y_qry = db_mnist.next('train')
+                x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
+                                             torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
+
+                # split to single task each time
+                for x_spt_one, y_spt_one, x_qry_one, y_qry_one in zip(x_spt, y_spt, x_qry, y_qry):
+                    test_acc = maml.finetunning(x_spt_one, y_spt_one, x_qry_one, y_qry_one)
+                    accs.append(test_acc)
+
+            # [b, update_step+1]
+            accs = np.array(accs).mean(axis=0).astype(np.float16)
+            print('Omniglot test acc:', accs)
+
+        # test mnist
+        if step % 100 == 0:
             accs = []
             for _ in range(1000 // args.task_num):
                 # test
@@ -75,7 +102,7 @@ def main(args):
 
             # [b, update_step+1]
             accs = np.array(accs).mean(axis=0).astype(np.float16)
-            print('Test acc:', accs)
+            print('Mnist test acc:', accs)
 
 
 if __name__ == '__main__':

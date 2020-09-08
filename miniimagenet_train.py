@@ -20,7 +20,7 @@ def mean_confidence_interval(accs, confidence=0.95):
 def main():
 
     torch.manual_seed(222)
-    torch.cuda.manual_seed_all(222)
+    # torch.cuda.manual_seed_all(222)
     np.random.seed(222)
 
     print(args)
@@ -46,7 +46,8 @@ def main():
         ('linear', [args.n_way, 32 * 5 * 5])
     ]
 
-    device = torch.device('cuda')
+    # device = torch.device('cuda')
+    device = torch.device('cpu')
     maml = Meta(args, config).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
